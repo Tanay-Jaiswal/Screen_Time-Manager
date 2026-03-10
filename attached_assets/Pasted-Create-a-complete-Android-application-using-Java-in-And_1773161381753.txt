@@ -1,0 +1,99 @@
+Create a complete Android application using Java in Android Studio.
+
+App Name: Intelligent Screen Time & Digital Well-Being Controller
+
+Purpose:
+The app monitors smartphone screen usage, evaluates whether the usage is healthy or addictive using fuzzy logic, sends notifications to the user if usage becomes unhealthy, and sends alerts to a registered parent if the usage becomes extreme.
+
+Main Features:
+
+1. Screen Time Monitoring
+   Use Android UsageStatsManager API to collect daily screen time data for all installed apps.
+   Track:
+
+* Total screen time
+* App usage duration
+* Number of app launches
+
+2. App Category Classification
+   Classify applications into three categories:
+
+* Productive (study apps, notes, coding apps)
+* Neutral (browser, music apps)
+* Distracting (social media, games)
+
+Allow a simple rule-based mapping of package names to categories.
+
+3. Fuzzy Logic Decision System
+   Implement a fuzzy logic evaluation module that analyzes:
+
+* Total screen time duration
+* Time of day (morning, afternoon, night, late night)
+* Type of apps used
+* Frequency of phone usage
+
+Based on fuzzy rules classify the user's behavior into:
+
+* Healthy
+* Warning
+* Addictive
+
+Example rule:
+IF screen time is High AND app type is Social Media AND time is Late Night THEN result is Addictive.
+
+4. User Notification System
+   Use Android NotificationManager to notify the user when usage becomes unhealthy.
+
+Example messages:
+"You have spent too much time on social media today."
+"Late night screen usage detected. Consider taking a break."
+
+5. Parent Alert System
+   Allow the user to enter a parent email address or phone number in settings.
+
+If the system classifies the usage as Addictive, send a daily report to the parent containing:
+
+* Total screen time
+* Time spent on distracting apps
+* Risk level
+
+6. Dashboard UI
+   Create a simple dashboard screen showing:
+
+* Total screen time today
+* Time spent on productive apps
+* Time spent on distracting apps
+* Current risk level (Healthy / Warning / Addictive)
+
+7. Settings Screen
+   Allow the user to:
+
+* Enable usage access permission
+* Enter parent contact information
+* Enable or disable notifications
+
+Technical Requirements:
+Language: Java
+Minimum SDK: API 21
+Use UsageStatsManager to access screen usage data.
+Request PACKAGE_USAGE_STATS permission.
+Use NotificationManager for alerts.
+
+Project Structure:
+MainActivity.java → Dashboard UI
+UsageStatsHelper.java → Collect screen time data
+AppClassifier.java → Classify apps by category
+FuzzyLogicEngine.java → Evaluate usage using fuzzy rules
+NotificationHelper.java → Send alerts
+ParentAlertService.java → Send parent notifications
+
+Expected Workflow:
+
+1. App collects screen time data.
+2. Apps are categorized as productive, neutral, or distracting.
+3. Fuzzy logic processes the usage data.
+4. System classifies the behavior as Healthy, Warning, or Addictive.
+5. If Warning → notify user.
+6. If Addictive → notify user and send report to parent.
+
+The UI should be simple, modern, and suitable for a student project.
