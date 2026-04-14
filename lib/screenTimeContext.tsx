@@ -7,6 +7,7 @@ import React, {
   ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import emailjs from "@emailjs/browser";
 import {
   AppCategory,
   RiskLevel,
@@ -218,12 +219,39 @@ export function ScreenTimeProvider({ children }: { children: ReactNode }) {
         }
 
         if (newNotifs.length > 0) {
-          setNotifications((prevN) => {
-            const merged = [...prevN, ...newNotifs].slice(-20);
-            AsyncStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(merged));
-            return merged;
-          });
-        }
+  setNotifications((prevN) => {
+    const merged = [...prevN, ...newNotifs].slice(-20);
+    AsyncStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(merged));
+    return merged;
+  });
+
+  // Send parent email if usage is addictive
+  // Send parent email if usage is addictive
+console.log("Risk level:", stats.riskLevel);
+console.log("Parent alerts enabled:", parentSettings.parentAlertsEnabled);
+console.log("Parent email:", parentSettings.email);
+if (stats.riskLevel === "addictive" && parentSettings.parentAlertsEnabled && parentSettings.email) {
+    emailjs.send(
+  "service_jbfawvz",
+  "template_vn448tr",
+  {
+    name: "WellScreen App",
+    user_name: "Your Child",
+    to_name: "Parent",
+    email: parentSettings.email,
+    risk_level: "ADDICTIVE 🔴",
+    total_time: `${stats.totalMinutes} minutes`,
+    distracting_time: `${stats.distractingMinutes} minutes`,
+    to_email: parentSettings.email,
+  },
+  "pY3CotdFWhTP2ZLTC"
+).then(() => {
+  console.log("Email sent successfully!");
+}).catch((err) => {
+  console.error("Email error:", err);
+});
+  }
+}
 
         AsyncStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(updated));
         return updated;

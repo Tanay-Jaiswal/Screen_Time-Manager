@@ -72,21 +72,30 @@ export default function SettingsScreen() {
   };
 
   const handleClearData = () => {
-    Alert.alert(
-      "Reset Today's Data",
-      "This will archive today's data to history and reset your session counter. Continue?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Reset",
-          style: "destructive",
-          onPress: () => {
-            clearTodayData();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "This will archive today's data and reset your sessions. Continue?"
+      );
+      if (confirmed) {
+        clearTodayData();
+      }
+    } else {
+      Alert.alert(
+        "Reset Today's Data",
+        "This will archive today's data to history and reset your session counter. Continue?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Reset",
+            style: "destructive",
+            onPress: () => {
+              clearTodayData();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const topInset = Platform.OS === "web" ? 67 : insets.top;

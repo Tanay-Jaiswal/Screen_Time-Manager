@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useScreenTime } from "@/lib/screenTimeContext";
 import { formatMinutes, RiskLevel } from "@/lib/fuzzyLogic";
 import Colors from "@/constants/colors";
+import Toast from "@/components/Toast";
 
 const { width } = Dimensions.get("window");
 
@@ -136,6 +137,21 @@ export default function DashboardScreen() {
   const { todayStats, weekHistory, sessions } = useScreenTime();
 
   const riskConfig = RISK_CONFIG[todayStats.riskLevel];
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"warning" | "addictive" | "info">("info");
+  useEffect(() => {
+  if (todayStats.riskLevel === "warning" || todayStats.riskLevel === "addictive") {
+    setToastMessage(
+      todayStats.riskLevel === "addictive"
+        ? "🔴 Addictive usage detected! Take a break."
+        : "⚠️ Warning! Your screen time is getting high."
+    );
+    setToastType(todayStats.riskLevel);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 4500);
+  }
+  }, [todayStats.riskLevel, todayStats.totalMinutes]);
 
   const allHistory = useMemo(() => {
     const todayEntry = { ...todayStats, date: new Date().toDateString() };
@@ -315,6 +331,11 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        visible={toastVisible}
+      />
     </View>
   );
 }
