@@ -147,7 +147,7 @@ export default function AlertsScreen() {
             </View>
             <Text style={styles.emptyTitle}>No Alerts Yet</Text>
             <Text style={styles.emptyText}>
-              You'll receive alerts when your screen time becomes unhealthy or addictive.
+              You will receive alerts when your screen time becomes unhealthy or addictive.
             </Text>
           </View>
         ) : (

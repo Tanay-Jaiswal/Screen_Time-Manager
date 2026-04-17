@@ -55,6 +55,13 @@ export default function SettingsScreen() {
     updateParentSettings,
     todayStats,
     weekHistory,
+    usageSyncSupported,
+    usagePermissionGranted,
+    requestUsagePermission,
+    refreshUsagePermission,
+    syncFromDeviceUsage,
+    isSyncing,
+    lastSyncedAt,
     clearTodayData,
   } = useScreenTime();
 
@@ -65,10 +72,33 @@ export default function SettingsScreen() {
   const [saved, setSaved] = useState(false);
 
   const handleSaveContact = () => {
-    updateParentSettings({ email, phone });
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone.trim();
+
+    if (trimmedEmail.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      Alert.alert("Invalid Email", "Please enter a valid parent email address.");
+      return;
+    }
+
+    updateParentSettings({ email: trimmedEmail, phone: trimmedPhone });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleOpenUsageSettings = async () => {
+    await requestUsagePermission();
+    Haptics.selectionAsync();
+  };
+
+  const handleRefreshPermission = async () => {
+    await refreshUsagePermission();
+    Haptics.selectionAsync();
+  };
+
+  const handleManualSync = async () => {
+    await syncFromDeviceUsage();
+    Haptics.selectionAsync();
   };
 
   const handleClearData = () => {
@@ -308,15 +338,82 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <SettingRow
             label="Usage Permission"
-            description="Required to access screen time data"
+            description={
+              usageSyncSupported
+                ? "Required to access real screen time data from Android"
+                : "Automatic usage sync requires an Android build"
+            }
             icon="shield-checkmark"
-            iconColor={Colors.palette.green}
+            iconColor={usagePermissionGranted ? Colors.palette.green : Colors.palette.yellow}
             right={
               <View style={styles.permBadge}>
-                <Text style={styles.permBadgeText}>Active</Text>
+                <Text
+                  style={[
+                    styles.permBadgeText,
+                    {
+                      color: usagePermissionGranted
+                        ? Colors.palette.green
+                        : usageSyncSupported
+                        ? Colors.palette.yellow
+                        : Colors.palette.textMuted,
+                    },
+                  ]}
+                >
+                  {usagePermissionGranted
+                    ? "Active"
+                    : usageSyncSupported
+                    ? "Required"
+                    : "Unavailable"}
+                </Text>
               </View>
             }
           />
+
+          {usageSyncSupported && (
+            <View style={styles.permissionActions}>
+              {!usagePermissionGranted && (
+                <Pressable
+                  onPress={handleOpenUsageSettings}
+                  style={({ pressed }) => [styles.permissionBtn, pressed && { opacity: 0.8 }]}
+                >
+                  <Ionicons name="open" size={14} color="#fff" />
+                  <Text style={styles.permissionBtnText}>Open Usage Access Settings</Text>
+                </Pressable>
+              )}
+
+              <View style={styles.permissionActionRow}>
+                <Pressable
+                  onPress={handleRefreshPermission}
+                  style={({ pressed }) => [styles.permissionSecondaryBtn, pressed && { opacity: 0.8 }]}
+                >
+                  <Ionicons name="shield-checkmark-outline" size={14} color={Colors.palette.accent} />
+                  <Text style={styles.permissionSecondaryBtnText}>Re-check Permission</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleManualSync}
+                  disabled={!usagePermissionGranted || isSyncing}
+                  style={({ pressed }) => [
+                    styles.permissionSecondaryBtn,
+                    (!usagePermissionGranted || isSyncing) && { opacity: 0.5 },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                >
+                  <Ionicons name="refresh" size={14} color={Colors.palette.accent} />
+                  <Text style={styles.permissionSecondaryBtnText}>
+                    {isSyncing ? "Syncing..." : "Sync Now"}
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Text style={styles.syncStatusText}>
+                {lastSyncedAt
+                  ? `Last sync: ${new Date(lastSyncedAt).toLocaleString()}`
+                  : "No sync recorded yet."}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.rowDivider} />
           <Pressable onPress={handleClearData} style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
             <SettingRow
@@ -554,6 +651,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.palette.green,
     fontFamily: "Inter_500Medium",
+  },
+  permissionActions: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    gap: 10,
+  },
+  permissionBtn: {
+    backgroundColor: Colors.palette.accent,
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  permissionBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  permissionActionRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  permissionSecondaryBtn: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.palette.accent,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    backgroundColor: Colors.palette.accentDim,
+  },
+  permissionSecondaryBtnText: {
+    color: Colors.palette.accent,
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  syncStatusText: {
+    fontSize: 12,
+    color: Colors.palette.textMuted,
+    fontFamily: "Inter_400Regular",
   },
   versionText: {
     fontSize: 13,

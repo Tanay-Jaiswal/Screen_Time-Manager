@@ -39,6 +39,26 @@ Rules classify behavior as: **Healthy** / **Warning** / **Addictive**
 - `Start Backend`: `npm run server:dev` (port 5000)
 - `Start Frontend`: `npm run expo:dev` (port 8081)
 
+## Android Screen Time (How it’s fetched)
+This app reads on-device usage using Android’s `UsageStatsManager` via the `react-native-usage-stats` native module.
+
+- Requires **Usage Access** permission (special permission): Settings → Security & privacy → Permission manager → **Usage access** → enable for the app.
+- Data comes from **app foreground time** (e.g. `UsageStats.getTotalTimeInForeground()` for “today”).
+- Android does **not** provide a public API to read Samsung/Google **Digital Wellbeing’s** own UI totals directly; OEMs may also delay or smooth usage updates.
+
+## Parent Email (EmailJS) setup
+Parent alerts are sent through EmailJS from the mobile app.
+
+1. Create an EmailJS account and add an email service (Gmail/Outlook/etc).
+2. Create an EmailJS template that uses parameters like `to_email`, `risk_level`, `total_time`, `distracting_time`.
+3. Configure these environment variables:
+	- `EXPO_PUBLIC_EMAILJS_SERVICE_ID`
+	- `EXPO_PUBLIC_EMAILJS_TEMPLATE_ID`
+	- `EXPO_PUBLIC_EMAILJS_PUBLIC_KEY`
+
+For local dev, set env vars in your shell before running `npx expo start` (or your `.env` if your setup loads it).
+For EAS builds, add them as EAS environment variables/secrets.
+
 ## Features
 1. Dashboard with total/productive/distracting breakdown and weekly chart
 2. Manual session logging with app picker modal
