@@ -11,20 +11,7 @@ export interface UsageSnapshot {
   lateNightMinutes: number;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  MEMBERSHIP FUNCTION FORMULAS
-//  Each function maps a crisp input x to a membership degree [0, 1]
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Triangular membership function.
- *   μ(x) = max(0, min((x − a)/(b − a), (c − x)/(c − b)))
- *
- * @param x  - crisp input
- * @param a  - left foot   (μ = 0)
- * @param b  - peak        (μ = 1)
- * @param c  - right foot  (μ = 0)
- */
+/** Triangular membership function */
 function trimf(x: number, a: number, b: number, c: number): number {
   if (a === b && b === c) return x === a ? 1 : 0;
   if (a === b) return Math.max(0, Math.min(1, (c - x) / (c - b)));
@@ -32,122 +19,65 @@ function trimf(x: number, a: number, b: number, c: number): number {
   return Math.max(0, Math.min((x - a) / (b - a), (c - x) / (c - b)));
 }
 
-/**
- * Trapezoidal membership function.
- *   μ(x) = max(0, min((x − a)/(b − a), 1, (d − x)/(d − c)))
- *
- * @param x  - crisp input
- * @param a  - left foot      (μ starts rising)
- * @param b  - left shoulder  (μ reaches 1)
- * @param c  - right shoulder (μ starts falling)
- * @param d  - right foot     (μ reaches 0)
- */
+/** Trapezoidal membership function */
 function trapmf(x: number, a: number, b: number, c: number, d: number): number {
   const rising  = b === a ? (x >= a ? 1 : 0) : (x - a) / (b - a);
   const falling = d === c ? (x <= c ? 1 : 0) : (d - x) / (d - c);
   return Math.max(0, Math.min(rising, 1, falling));
 }
 
-/**
- * Gaussian membership function.
- *   μ(x) = exp(−0.5 · ((x − c) / σ)²)
- *
- * @param x     - crisp input
- * @param c     - center (peak)
- * @param sigma - standard deviation (width)
- */
+/** Gaussian membership function */
 function gaussmf(x: number, c: number, sigma: number): number {
   return Math.exp(-0.5 * Math.pow((x - c) / sigma, 2));
 }
 
-/**
- * Sigmoid membership function (open-ended "high" sets).
- *   μ(x) = 1 / (1 + exp(−a · (x − c)))
- *
- * @param x  - crisp input
- * @param a  - slope (positive = rising sigmoid)
- * @param c  - inflection point (μ = 0.5)
- */
+/** Sigmoid membership function */
 function sigmf(x: number, a: number, c: number): number {
   return 1 / (1 + Math.exp(-a * (x - c)));
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  FUZZY T-NORM / S-NORM OPERATORS
-// ═══════════════════════════════════════════════════════════════
-
-/** Fuzzy AND (T-norm): minimum operator */
 const fuzzyAND = (...vals: number[]): number => Math.min(...vals);
 
-/** Fuzzy OR (S-norm): maximum operator */
-const fuzzyOR = (...vals: number[]): number => Math.max(...vals);
-
-// ═══════════════════════════════════════════════════════════════
-//  INPUT LINGUISTIC VARIABLES  (Fuzzification layer)
-//
-//  Each variable defines fuzzy sets over its universe of discourse.
-//  Parameters are tuned for screen-time monitoring context.
-// ═══════════════════════════════════════════════════════════════
-
-/** Screen Time in minutes — Universe: [0, 600+] */
+/** Input Linguistic Variables */
 const screenTimeMF = {
-  low:    (x: number) => trapmf(x, 0, 0, 60, 120),       // plateau 0–60, falls 60–120
-  medium: (x: number) => trapmf(x, 60, 120, 240, 360),   // rises 60–120, plateau 120–240, falls 240–360
-  high:   (x: number) => sigmf(x, 0.025, 300),            // sigmoid inflection at 300 min (5 h)
+  low:    (x: number) => trapmf(x, 0, 0, 60, 120),
+  medium: (x: number) => trapmf(x, 60, 120, 240, 360),
+  high:   (x: number) => sigmf(x, 0.025, 300),
 };
 
-/** Distraction Ratio (distracting / total) — Universe: [0, 1] */
 const distractionMF = {
-  low:    (x: number) => sigmf(x, -20, 0.25),             // inverse sigmoid, inflection 0.25
-  medium: (x: number) => gaussmf(x, 0.45, 0.12),         // Gaussian peak at 0.45, σ = 0.12
-  high:   (x: number) => sigmf(x, 20, 0.55),              // sigmoid inflection at 0.55
+  low:    (x: number) => sigmf(x, -20, 0.25),
+  medium: (x: number) => gaussmf(x, 0.45, 0.12),
+  high:   (x: number) => sigmf(x, 20, 0.55),
 };
 
-/** Session / Pickup Frequency — Universe: [0, 50+] */
 const frequencyMF = {
-  low:    (x: number) => sigmf(x, -0.4, 10),              // inverse sigmoid, inflection 10
-  medium: (x: number) => gaussmf(x, 17, 5),               // Gaussian peak at 17, σ = 5
-  high:   (x: number) => sigmf(x, 0.4, 25),               // sigmoid inflection at 25
+  low:    (x: number) => sigmf(x, -0.4, 10),
+  medium: (x: number) => gaussmf(x, 17, 5),
+  high:   (x: number) => sigmf(x, 0.4, 25),
 };
 
-/** Late-Night Usage in minutes — Universe: [0, 120+] */
 const lateNightMF = {
-  none:  (x: number) => sigmf(x, -0.5, 5),                // inverse sigmoid, inflection 5
-  some:  (x: number) => gaussmf(x, 20, 10),               // Gaussian peak at 20, σ = 10
-  heavy: (x: number) => sigmf(x, 0.15, 40),               // sigmoid inflection at 40
+  none:  (x: number) => sigmf(x, -0.5, 5),
+  some:  (x: number) => gaussmf(x, 20, 10),
+  heavy: (x: number) => sigmf(x, 0.15, 40),
 };
 
-// ═══════════════════════════════════════════════════════════════
-//  OUTPUT LINGUISTIC VARIABLE
-//
-//  Risk score — Universe: [0, 100]
-//  Three overlapping fuzzy sets define the output space.
-// ═══════════════════════════════════════════════════════════════
-
+/** Output Linguistic Variable (Risk Score: 0-100) */
 const riskOutputMF = {
   healthy:   (x: number) => trapmf(x, 0, 0, 15, 35),
   warning:   (x: number) => trimf(x, 25, 50, 75),
   addictive: (x: number) => trapmf(x, 65, 85, 100, 100),
 };
 
-// ═══════════════════════════════════════════════════════════════
-//  FUZZY RULE BASE  (Mamdani-style)
-//
-//  Each rule: IF (antecedent₁ AND antecedent₂ …) THEN consequent
-//  Firing strength = T-norm(antecedent membership degrees)
-// ═══════════════════════════════════════════════════════════════
-
 interface FuzzyRule {
-  /** Returns the firing strength of the rule (0–1) */
-  fire: (
-    st: number, dr: number, freq: number, ln: number
-  ) => number;
+  fire: (st: number, dr: number, freq: number, ln: number) => number;
   consequent: "healthy" | "warning" | "addictive";
   label: string;
 }
 
 const RULES: FuzzyRule[] = [
-  // ── Healthy rules ──────────────────────────────────
+  // Healthy
   {
     fire: (st, dr) => fuzzyAND(screenTimeMF.low(st), distractionMF.low(dr)),
     consequent: "healthy",
@@ -163,8 +93,7 @@ const RULES: FuzzyRule[] = [
     consequent: "healthy",
     label: "Minimal overall device engagement",
   },
-
-  // ── Warning rules ──────────────────────────────────
+  // Warning
   {
     fire: (st, dr) => fuzzyAND(screenTimeMF.medium(st), distractionMF.high(dr)),
     consequent: "warning",
@@ -190,8 +119,7 @@ const RULES: FuzzyRule[] = [
     consequent: "warning",
     label: "Some late-night usage detected",
   },
-
-  // ── Addictive rules ────────────────────────────────
+  // Addictive
   {
     fire: (st, dr) => fuzzyAND(screenTimeMF.high(st), distractionMF.high(dr)),
     consequent: "addictive",
@@ -219,17 +147,8 @@ const RULES: FuzzyRule[] = [
   },
 ];
 
-// ═══════════════════════════════════════════════════════════════
-//  CENTROID DEFUZZIFICATION
-//
-//  Discretise the output universe [0, 100] into N points.
-//  For each point x_i, compute the aggregated membership:
-//      μ_agg(x_i) = max over all rules [ min(α_k, μ_Ck(x_i)) ]
-//  Then:
-//      centroid = Σ(x_i · μ_agg(x_i)) / Σ(μ_agg(x_i))
-// ═══════════════════════════════════════════════════════════════
-
-const DEFUZZ_STEPS = 200; // discretisation resolution
+/** Centroid Defuzzification */
+const DEFUZZ_STEPS = 200;
 
 interface RuleActivation {
   strength: number;
@@ -241,62 +160,42 @@ function centroidDefuzzify(activations: RuleActivation[]): number {
   let denominator = 0;
 
   for (let i = 0; i <= DEFUZZ_STEPS; i++) {
-    const x = (i / DEFUZZ_STEPS) * 100; // universe point [0, 100]
-
-    // Aggregate: for each rule, clip the consequent MF by its firing strength,
-    // then take the max across all rules (fuzzy union / S-norm).
+    const x = (i / DEFUZZ_STEPS) * 100;
     let muAgg = 0;
     for (const act of activations) {
       if (act.strength <= 0) continue;
       const muConsequent = riskOutputMF[act.consequent](x);
-      // Mamdani implication: min(α, μ_C(x))
       const clipped = Math.min(act.strength, muConsequent);
-      muAgg = Math.max(muAgg, clipped); // S-norm aggregation
+      muAgg = Math.max(muAgg, clipped);
     }
-
     numerator += x * muAgg;
     denominator += muAgg;
   }
-
-  // If no rules fired, return 0 (healthy)
   return denominator > 0 ? numerator / denominator : 0;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  MAIN EVALUATION  —  Fuzzify → Infer → Defuzzify
-// ═══════════════════════════════════════════════════════════════
-
+/** Main Evaluation - Fuzzify → Infer → Defuzzify */
 export function evaluateUsage(snapshot: UsageSnapshot): {
   riskLevel: RiskLevel;
   score: number;
   details: string[];
 } {
   const { totalMinutes, distractingMinutes, sessionCount, lateNightMinutes } = snapshot;
-
-  // ── Step 1: Compute crisp inputs ──
   const distractRatio = totalMinutes > 0 ? distractingMinutes / totalMinutes : 0;
 
-  // ── Step 2: Fire every rule (fuzzification + inference) ──
   const activations: RuleActivation[] = [];
   const triggered: string[] = [];
 
   for (const rule of RULES) {
     const strength = rule.fire(totalMinutes, distractRatio, sessionCount, lateNightMinutes);
-
     activations.push({ strength, consequent: rule.consequent });
-
-    // Collect human-readable labels for rules with non-negligible activation
     if (strength > 0.1) {
       triggered.push(rule.label);
     }
   }
 
-  // ── Step 3: Centroid defuzzification ──
   const crispScore = centroidDefuzzify(activations);
 
-  // ── Step 4: Map defuzzified score to a discrete risk level ──
-  //   Use the output MFs themselves to determine which set the centroid
-  //   belongs to most strongly (maximum membership principle).
   const memberHealthy   = riskOutputMF.healthy(crispScore);
   const memberWarning   = riskOutputMF.warning(crispScore);
   const memberAddictive = riskOutputMF.addictive(crispScore);
@@ -316,10 +215,6 @@ export function evaluateUsage(snapshot: UsageSnapshot): {
     details: triggered.slice(0, 3),
   };
 }
-
-// ═══════════════════════════════════════════════════════════════
-//  UTILITY FUNCTIONS  (unchanged public API)
-// ═══════════════════════════════════════════════════════════════
 
 export function getTimeOfDay(): TimeOfDay {
   const hour = new Date().getHours();
@@ -343,7 +238,6 @@ export function formatMinutes(minutes: number): string {
 }
 
 export const APP_CATEGORIES: Record<string, AppCategory> = {
-  // Productive
   "Notion": "productive",
   "Notes": "productive",
   "Duolingo": "productive",
@@ -356,7 +250,6 @@ export const APP_CATEGORIES: Record<string, AppCategory> = {
   "Zoom": "productive",
   "Gmail": "productive",
   "LinkedIn": "productive",
-  // Neutral
   "Maps": "neutral",
   "Spotify": "neutral",
   "Podcasts": "neutral",
@@ -365,7 +258,6 @@ export const APP_CATEGORIES: Record<string, AppCategory> = {
   "Messages": "neutral",
   "Photos": "neutral",
   "Weather": "neutral",
-  // Distracting
   "Instagram": "distracting",
   "TikTok": "distracting",
   "YouTube": "distracting",
